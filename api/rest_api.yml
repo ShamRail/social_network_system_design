@@ -1,0 +1,554 @@
+openapi: 3.0.0
+info:
+  version: 1.0.0
+  title: API социальной сети для путешественников
+
+tags:
+  - name: User
+  - name: Post
+  - name: Place
+  - name: File
+
+paths:
+
+  /users/{userId}/subscriptions:
+    post:
+      summary: Подписаться на пользователя
+      description: Добавляет в список подписок переданного пользователя для доступа к постам пользователя, которого подписываются
+      parameters:
+        - $ref: '#/components/parameters/UserIdParameter'
+      tags:
+        - User
+      requestBody:
+        required: true
+        description: Запрос на подписку
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                subscriberId:
+                  type: string
+                  format: uuid
+                  description: Идентификатор подписчика
+      responses:
+        '201':
+          description: Подписка успешно создана
+        '404':
+          $ref: '#/components/responses/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
+    delete:
+      summary: Отписаться от пользователя
+      description: Удаляет подписку из списка подписок пользователя
+      parameters:
+        - $ref: '#/components/parameters/UserIdParameter'
+        - $ref: '#/components/parameters/SubscriberIdParameter'
+      tags:
+        - User
+      responses:
+        '200':
+          description: Подписка успешно удалена
+        '404':
+          $ref: '#/components/responses/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /users/{userId}/posts:
+    post:
+      summary: Опубликовать пост
+      description: Загружает данные поста и сохраняет их
+      parameters:
+        - $ref: '#/components/parameters/UserIdParameter'
+      tags:
+        - User
+      requestBody:
+        description: Запрос на публикацию поста
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                description:
+                  type: string
+                  description: Описание
+                  maxLength: 500
+                userId:
+                  type: string
+                  format: uuid
+                  description: Идентификатор пользователя, опубликовавшего пост
+                placeId:
+                  type: string
+                  format: uuid
+                  description: Идентификатор места, к которому относится пост
+                attachments:
+                  type: array
+                  description: Идентификаторы файлов, прикрепленных к посту
+                  items:
+                    type: string
+                    format: uuid
+                  maxItems: 3
+      responses:
+        '201':
+          description: Пост успешно создан
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/ErrorResponse'
+    get:
+      summary: Получить список постов конкретного пользователя
+      description: Выгружает список опубликованных постов пользователем по его идентификатору в обратном хронологическом порядке
+      parameters:
+        - $ref: '#/components/parameters/UserIdParameter'
+        - $ref: '#/components/parameters/PageParameter'
+        - $ref: '#/components/parameters/PageSizeParameter'
+      tags:
+        - User
+      responses:
+        '200':
+          description: Лента успешно выгружена
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Post'
+        '404':
+          $ref: '#/components/responses/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /users/{userId}/feed:
+    get:
+      summary: Получить ленту постов пользователя
+      description: Возвращает ленту постов пользователя на основе его подписок в обратной хронологическом порядке
+      parameters:
+        - $ref: '#/components/parameters/UserIdParameter'
+        - $ref: '#/components/parameters/PageParameter'
+        - $ref: '#/components/parameters/PageSizeParameter'
+      tags:
+        - User
+      responses:
+        '200':
+          description: Посты успешны выгружены
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Post'
+        '404':
+          $ref: '#/components/responses/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /posts:
+    get:
+      summary: Получить список постов
+      description: Выгружает список опубликованных постов в обратном хронологическом порядке
+      parameters:
+        - $ref: '#/components/parameters/PageParameter'
+        - $ref: '#/components/parameters/PageSizeParameter'
+        - name: placeId
+          in: query
+          description: Идентификатор места
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: userId
+          in: query
+          description: Идентификатор пользователя
+          required: false
+          schema:
+            type: string
+            format: uuid
+      tags:
+        - Post
+      responses:
+        '200':
+          description: Посты успешно выгружены
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Post'
+        '404':
+          $ref: '#/components/responses/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /posts/{postId}/reactions:
+    post:
+      summary: Поставить реакцию на пост
+      description: Сохраняет реакцию на пост
+      parameters:
+        - $ref: '#/components/parameters/PostIdParameter'
+      tags:
+        - Post
+      requestBody:
+        required: true
+        description: Запрос на реакцию поста
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: string
+                  format: uuid
+                  description: Идентификатор пользователя, который оставляет реакцию
+                emoji:
+                  type: string
+                  description: Эмодзи реакции
+      responses:
+        '201':
+          description: Реакция успешно создана
+        '404':
+          $ref: '#/components/responses/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
+    get:
+      summary: Получить список реакций поста
+      description: Возвращает список реакций поста в хронологическом порядке
+      parameters:
+        - $ref: '#/components/parameters/PostIdParameter'
+        - $ref: '#/components/parameters/PageParameter'
+        - $ref: '#/components/parameters/PageSizeParameter'
+      tags:
+        - Post
+      responses:
+        '200':
+          description: Реакции успешно выгружены
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Reaction'
+        '404':
+          $ref: '#/components/responses/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /posts/{postId}/comments:
+    post:
+      summary: Оставить комментарий к посту
+      description: Сохраняет комментарий к посту
+      parameters:
+        - $ref: '#/components/parameters/PostIdParameter'
+      tags:
+        - Post
+      requestBody:
+        required: true
+        description: Запрос на создание комментария к посту
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: string
+                  format: uuid
+                  description: Идентификатор пользователя, который оставляет комментарий
+                message:
+                  type: string
+                  description: Текст комментария
+                  maxLength: 200
+                attachmentId:
+                  type: string
+                  description: Идентификатор ранее загруженного файла
+      responses:
+        '201':
+          description: Комментарий успешно создан
+        '404':
+          $ref: '#/components/responses/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
+    get:
+      summary: Получить список комментариев поста
+      description: Возвращает список комментариев поста в хронологическом порядке
+      parameters:
+        - $ref: '#/components/parameters/PostIdParameter'
+        - $ref: '#/components/parameters/PageParameter'
+        - $ref: '#/components/parameters/PageSizeParameter'
+      tags:
+        - Post
+      responses:
+        '200':
+          description: Комментарии успешно выгружены
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Comment'
+        '404':
+          $ref: '#/components/responses/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /places:
+    get:
+      summary: Получить список популярных мест
+      description: Возвращает список популярных мест основе числа опубликованных постов по нему
+      parameters:
+        - $ref: '#/components/parameters/PageParameter'
+        - $ref: '#/components/parameters/PageSizeParameter'
+      tags:
+        - Place
+      responses:
+        '200':
+          description: Популярные места успешно выгружены
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Place'
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /files:
+    post:
+      summary: Загрузить файл
+      description: Сохраняет файл и возвращает метаданные
+      tags:
+        - File
+      requestBody:
+        description: Запрос на загрузку файла
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Загружаемый файл
+                  x-file-max-size: 1048576
+                  x-file-max-size-human: "1MB"
+                  x-allowed-mime-types:
+                    - image/jpeg
+                    - image/png
+      responses:
+        '200':
+          description: Файл успешно загружен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/File'
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+        '413':
+          $ref: '#/components/responses/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
+
+components:
+  schemas:
+    File:
+      description: Файл
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Идентификатор файла
+        url:
+          type: string
+          description: Ссылка для скачивания файла
+        uploadDate:
+          type: string
+          format: datetime
+          description: Время загрузки файла
+    Post:
+      description: Пост
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Идентификатор
+        description:
+          type: string
+          description: Описание
+          maxLength: 500
+        createdAt:
+          type: string
+          format: datetime
+          description: Время создания
+        userId:
+          type: string
+          format: uuid
+          description: Идентификатор пользователя, опубликовавшего пост
+        placeId:
+          type: string
+          format: uuid
+          description: Идентификатор места, к которому относится пост
+        commentCount:
+          type: number
+          description: Количество комментариев
+        reactionCount:
+          type: number
+          description: Количество реакций на посте
+        attachments:
+          type: array
+          description: Файлы, прикрепленных к посту
+          items:
+            $ref: '#/components/schemas/File'
+          maxItems: 3
+    User:
+      description: Пользователь
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Идентификатор
+        name:
+          type: string
+          description: Имя
+    Reaction:
+      description: Реакция на пост
+      type: object
+      properties:
+        id:
+            type: string
+            format: uuid
+            description: Идентификатор
+        postId:
+            type: string
+            format: uuid
+            description: Идентификатор поста
+        user:
+            $ref: '#/components/schemas/User'
+        emoji:
+            type: string
+            description: Эмодзи реакции
+        createdAt:
+          type: string
+          format: datetime
+          description: Время создания
+    Comment:
+      description: Комментарий на пост
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Идентификатор
+        postId:
+          type: string
+          format: uuid
+          description: Идентификатор поста
+        user:
+          $ref: '#/components/schemas/User'
+        message:
+          type: string
+          description: Сообщение комментария
+          maxLength: 200
+        createdAt:
+          type: string
+          format: datetime
+          description: Время создания
+        attachment:
+          $ref: '#/components/schemas/File'
+    Place:
+      description: Место, к которому привязываются посты
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Идентификатор
+        name:
+          type: string
+          description: Название
+        description:
+          type: string
+          description: Описание
+        rating:
+          type: number
+          description: Рейтинг популярности
+  parameters:
+    PostIdParameter:
+      name: postId
+      in: path
+      description: Идентификатор поста
+      required: true
+      schema:
+        type: string
+        format: uuid
+    UserIdParameter:
+      name: userId
+      in: path
+      description: Идентификатор пользователя
+      required: true
+      schema:
+        type: string
+        format: uuid
+    PageParameter:
+      name: page
+      in: query
+      description: Номер страницы
+      required: false
+      schema:
+        type: number
+        default: 0
+        minimum: 0
+    PageSizeParameter:
+      name: pageSize
+      in: query
+      description: Размер страницы
+      required: false
+      schema:
+        type: number
+        default: 10
+        maximum: 10
+    PlaceIdParameter:
+      name: placeId
+      in: path
+      description: Идентификатор места
+      required: true
+      schema:
+        type: string
+        format: uuid
+    FileIdParameter:
+      name: fileId
+      in: path
+      description: Идентификатор файла
+      required: true
+      schema:
+        type: string
+        format: uuid
+    SubscriberIdParameter:
+      name: subscriberId
+      in: query
+      description: Идентификатор подписчика
+      required: true
+      schema:
+        type: string
+        format: uuid
+  responses:
+    ErrorResponse:
+      description: Ответ об ошибки
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+                description: Идентификатор
+              message:
+                type: string
+                description: Описание
+              traceId:
+                type: string
+                description: Идентификатор трассировки для поиска ошибки по логам
+              occurredDate:
+                type: string
+                format: datetime
+                description: Время возникновения ошибки
