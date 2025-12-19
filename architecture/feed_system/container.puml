@@ -1,0 +1,21 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+Person(user, "Пользователь")
+Container(loadBalancer, "LoadBalancer", "Nginx", "Использует round robin")
+ContainerQueue(messageQueue, "EventsQueue", "Kafka", "Очередь сообщений для хранения событий создания постов и подписок/отписок")
+Container(postSystem, "PostSystem", "Software system", "Обрабатывает публикацию, оценку и комментирование постов")
+
+
+System_Boundary(feedSystem, "FeedSystem") {
+    Container(feedService, "FeedService", "Java", "Обрабатывает сохранение и получение лент популярных мест или пользователей", $tags="webApp")
+    ContainerDb(feedDatabase, "FeedDatabase", "Redis", "Хранит ленты мест и пользователей по идентификаторам мест и пользователей соответственно",  $tags="db")
+}
+
+Rel(user, loadBalancer, "Запрашивает ленты популярных мест или пользователей", "REST")
+Rel(loadBalancer, feedService, "Направляет запрос в сервис", "REST")
+
+Rel(feedService, feedDatabase, "Сохраняет ленты и выгружает их")
+Rel(feedService, postSystem, "Запрашивает актуальные ленты пользователей при подписке/отписке")
+Rel(feedService, messageQueue, "Подписывается на события создания постов и подписок/отписок")
+@enduml

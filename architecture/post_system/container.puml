@@ -1,0 +1,22 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+Person(user, "Пользователь")
+Container(loadBalancer, "LoadBalancer", "Nginx", "Использует round robin")
+Container(mediaSystem, "MediaSystem", "Software system", "Хранит и раздает медиа файлы")
+Container(feedSystem, "FeedSystem", "Software system", "Хранит ленты популярных мест и пользователей")
+ContainerQueue(messageQueue, "EventsQueue", "Kafka", "Очередь сообщений для хранения событий постов")
+
+System_Boundary(postSystem, "PostSystem") {
+    Container(postService, "PostService", "Java", "Обрабатывает создание постов, реакций и комментариев", $tags="webApp")
+    ContainerDb(postDatabase, "PostDatabase", "PgSQL", "Хранит посты, реакции и комментарии",  $tags="db")
+}
+
+Rel(user, loadBalancer, "Публикует, оценивает и комментирует посты", "REST")
+Rel(loadBalancer, postService, "Направляет запрос в сервис", "REST")
+
+Rel(postService, postDatabase, "Сохраняет посты, реакции и комментарии")
+Rel(postService, messageQueue, "Публикует событие о создании поста и комментария")
+Rel(mediaSystem, messageQueue, "Подписывается на событие создания поста и комментария")
+Rel(feedSystem, messageQueue, "Подписывается на событие создания поста")
+@enduml

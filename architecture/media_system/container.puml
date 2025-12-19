@@ -1,0 +1,26 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+Person(user, "Пользователь")
+Container(loadBalancer, "LoadBalancer", "Nginx", "Использует round robin")
+Container(cdn, "CDN", "Yandex Cloud CDN", "Кэширует и раздает медиа файлы")
+ContainerQueue(messageQueue, "EventsQueue", "Kafka", "Очередь сообщений для хранения событий создания постов")
+
+System_Boundary(mediaSystem, "MediaSystem") {
+    Container(mediaService, "MediaService", "Java", "Обрабатывает сохранение/выгрузку файлов в/из хранилища", $tags="webApp")
+    Container(mediaWorker, "MediaWorker", "Java", "Производит перенос файлов из временного хранилища в постоянное после публикации поста", $tags="webApp")
+    ContainerDb(tempFileStorage, "TempFileStorage", "Ceph", "Хранит файлы до публикации поста",  $tags="db")
+    ContainerDb(fileStorage, "FileStorage", "Ceph", "Хранит файлы после публикации поста",  $tags="db")
+}
+
+Rel(user, loadBalancer, "Сохраняет медиа-файл и получает URL для создания поста", "REST")
+Rel(user, cdn, "Запрашивает файл по URL", "REST")
+Rel(cdn, loadBalancer, "Запрашивает файл у origin сервера если его нет в CDN и сохраняет в себе", "REST")
+Rel(loadBalancer, mediaService, "Направляет запрос в сервис", "REST")
+
+Rel(mediaService, tempFileStorage, "Сохраняет файлы и выгружает их")
+Rel(mediaService, fileStorage, "Выгружает файлы")
+Rel(mediaWorker, messageQueue, "Подписывается на события создания постов и комментариев")
+Rel(mediaWorker, tempFileStorage, "Извлекает файл из временного хранилища")
+Rel(mediaWorker, fileStorage, "Сохраняет файл в постоянное хранилище")
+@enduml
