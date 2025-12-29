@@ -1,0 +1,14 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+Person(user, "Пользователь")
+Container(postSystem, "PostSystem", "Software system", "Обрабатывает публикацию, оценку и комментирование постов")
+Container(subscriptionSystem, "SubscriptionSystem", "Software system", "Обрабатывает подписку и отписку пользователей")
+Container(mediaSystem, "MediaSystem", "Software system", "Хранит и раздает медиа файлы")
+Container(feedSystem, "FeedSystem", "Software system", "Хранит ленты популярных мест и пользователей")
+
+Rel(user, postSystem, "Публикует, оценивает и комментирует посты")
+Rel(user, subscriptionSystem, "Подписывается/отписывается на/от других пользователей")
+Rel(user, mediaSystem, "Загружает и выгружает медиа файлы")
+Rel(user, feedSystem, "Получает ленты популярных мест и пользователей")
+@enduml

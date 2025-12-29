@@ -1,0 +1,20 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+Person(user, "Пользователь")
+Container(loadBalancer, "LoadBalancer", "Nginx", "Использует round robin")
+Container(feedSystem, "FeedSystem", "Software system", "Хранит ленты популярных мест и пользователей")
+ContainerQueue(messageQueue, "EventsQueue", "Kafka", "Очередь сообщений для хранения событий подписки/отписки")
+
+System_Boundary(subscriptionSystem, "SubscriptionSystem") {
+    Container(subscriptionService, "SubscriptionService", "Java", "Обрабатывает подписки и отписки пользователей", $tags="webApp")
+    ContainerDb(subscriptionDatabase, "SubscriptionDatabase", "PgSQL", "Хранит подписки",  $tags="db")
+}
+
+Rel(user, loadBalancer, "Подписывается/отписывается на/от других пользователей", "REST")
+Rel(loadBalancer, subscriptionService, "Направляет запрос в сервис", "REST")
+
+Rel(subscriptionService, subscriptionDatabase, "Сохраняет/удаляет подписки")
+Rel(subscriptionService, messageQueue, "Публикует событие подписки/отписки")
+Rel(feedSystem, messageQueue, "Подписывается на событие подписки/отписки")
+@enduml
